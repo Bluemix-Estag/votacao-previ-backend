@@ -176,7 +176,7 @@ app.post('/votar', function(req, res) {
   var cpf = req.body.cpf;
   res.setHeader('Content-Type', 'application/json');
 
-  database.get('votacao', {
+  database.get('usuarios', {
     revs_info: true
   }, function(err, doc) {
     if (err) {
@@ -187,76 +187,95 @@ app.post('/votar', function(req, res) {
         status: 500
       });
     } else {
-
-      var votacoes = doc.votacoes;
-      var votacaoAtual = votacoes[votacoes.length - 1];
+      var usuarios = doc.usuarios;
       var found = false;
-      for(var i in votacaoAtual.chapas){
-        if(votacaoAtual.chapas[i].nome === chapa){
-          found = true;
-          votacaoAtual.chapas[i].votos++;
+      var erro = false;
+      for (var i in usuarios) {
+        if (usuarios[i].cpf === cpf) {
+          if (usuarios[i].votou) {
+            erro = true;
+            res.status(400).json({
+              error: true,
+              description: "Usuario ja votou",
+              status: 400
+            });
+          } else {
+            found = true;
+            usuarios[i].votou = true;
+            usuarios[i].voto = chapa
+          }
           break;
         }
       }
-      if(found){
-        votacoes.pop();
-        votacoes.push(votacaoAtual);
-        doc.votacoes = votacoes;
-        console.log(doc)
-        database.insert(doc, 'votacao', function(err,doc){
-          if(err){
-            console.log(err)
-            res.status(500).json({
-              error: true,
-              description: "Internal Server Error 2",
-              status: 500
-            });
-          } else {
-            database.get('usuarios', {
-              revs_info: true
-            }, function(err, doc){
-              var usuarios = doc.usuarios;
-              var found = false;
-              for(var i in usuarios){
-                if(usuarios[i].cpf === cpf){
-                  found = true;
-                  usuarios[i].votou = true;
-                  usuarios[i].voto = chapa
-                  break;
-                }
-              }
-              if(found){
-              doc.usuarios = usuarios;
-              database.insert(doc, 'usuarios', function(err, doc){
-                if(err){
+      if (!erro) {
+        if (found) {
+          doc.usuarios = usuarios;
+          database.insert(doc, 'usuarios', function(err, doc) {
+            if (err) {
+              console.log(err)
+              res.status(500).json({
+                error: true,
+                description: "Internal Server Error 2",
+                status: 500
+              });
+            } else {
+              database.get('votacao', {
+                revs_info: true
+              }, function(err, doc) {
+                if (err) {
                   res.status(500).json({
                     error: true,
-                    description: "Internal Server Error 3",
+                    description: "Internal Server Error 2",
                     status: 500
                   });
                 } else {
-                  res.status(200).json({
-                    error: false,
-                    description: "Voto foi computado"
-                  });
+                  var votacoes = doc.votacoes;
+                  var votacaoAtual = votacoes[votacoes.length - 1];
+                  var found = false;
+                  for (var i in votacaoAtual.chapas) {
+                    if (votacaoAtual.chapas[i].nome === chapa) {
+                      found = true;
+                      votacaoAtual.chapas[i].votos++;
+                      break;
+                    }
+                  }
+                  if (found) {
+                    votacoes.pop();
+                    votacoes.push(votacaoAtual);
+                    doc.votacoes = votacoes;
+                    console.log(doc)
+                    database.insert(doc, 'votacao', function(err, doc) {
+                      if (err) {
+                        res.status(500).json({
+                          error: true,
+                          description: "Internal Server Error 3",
+                          status: 500
+                        });
+                      } else {
+                        res.status(200).json({
+                          error: false,
+                          description: "Voto foi computado"
+                        });
+                      }
+                    })
+                  } else {
+                    res.status(404).json({
+                      error: true,
+                      description: "Chapa invalida",
+                      status: 404
+                    });
+                  }
                 }
               })
-            } else {
-              res.status(404).json({
-                error: true,
-                description: "Usuario  nao encontrado",
-                status: 404
-              });
             }
-            })
-          }
-        })
-      } else {
-        res.status(404).json({
-          error: true,
-          description: "Chapa invalida",
-          status: 404
-        });
+          })
+        } else {
+          res.status(404).json({
+            error: true,
+            description: "Usuario nao encontrado",
+            status: 404
+          });
+        }
       }
     }
   })
