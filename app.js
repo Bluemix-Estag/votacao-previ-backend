@@ -233,7 +233,9 @@ app.post('/votar', function(req, res) {
                   var votacaoAtual = votacoes[votacoes.length - 1];
                   var found = false;
                   for (var i in votacaoAtual.chapas) {
-                    if (votacaoAtual.chapas[i].nome === chapa) {
+                    if (votacaoAtual.chapas[i].id === chapa) {
+                      console.log(chapa)
+                      console.log(votacaoAtual.chapas[i].id)
                       found = true;
                       votacaoAtual.chapas[i].votos++;
                       break;
