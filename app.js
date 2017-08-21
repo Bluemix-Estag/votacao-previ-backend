@@ -283,7 +283,7 @@ app.post('/votar', function(req, res) {
   })
 })
 
-app.post('/reset', function(req, res){
+app.get('/reset', function(req, res){
   res.setHeader('Content-Type', 'application/json');
   database.get('usuarios', {
     revs_info: true
