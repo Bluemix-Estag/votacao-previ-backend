@@ -282,6 +282,40 @@ app.post('/votar', function(req, res) {
     }
   })
 })
+
+app.post('/reset', function(req, res){
+  res.setHeader('Content-Type', 'application/json');
+  database.get('usuarios', {
+    revs_info: true
+  }, function(err, doc){
+    if(err){
+      res.status(500).json({
+        error: true,
+        description: "Nao foi possivel resetar os usuarios",
+        status: 500
+      })
+    } else {
+      for(var i in doc.usuarios){
+        doc.usuarios[i].votou = false;
+        doc.usuarios[i].voto = "";
+      }
+      database.insert(doc, 'usuarios', function(err, doc){
+        if(err){
+          res.status(500).json({
+            error: true,
+            description: "Nao foi possivel inserir os usuarios",
+            status: 500
+          })
+        } else {
+          res.status(200).json({
+            error: false,
+            description: "Votos resetados"
+          })
+        }
+      })
+    }
+  })
+})
 //========================
 //========================
 
